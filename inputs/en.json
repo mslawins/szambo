@@ -1,0 +1,14 @@
+{
+  "pax": {
+    "rooms": "Room | Rooms",
+    "adults": "Adult | Adults",
+    "children": "Child | Children",
+    "years": "Year | Years",
+    "travelers": "Traveler | Travelers",
+    "add_room": "Add room",
+    "deep": {
+      "foo": "bar"
+    }
+  },
+  "foo": "bar"
+}

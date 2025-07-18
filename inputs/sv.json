@@ -1,0 +1,14 @@
+{
+  "pax": {
+    "rooms": "Rum | Rum",
+    "adults": "Vuxen | Vuxna",
+    "children": "Barn | Barn",
+    "years": "År | År",
+    "travelers": "Resenär | Resenärer",
+    "add_room": "Lägg till rum",
+    "deep": {
+      "foo": "baz"
+    }
+  },
+  "foo": "baz"
+}
