@@ -1,3 +1,208 @@
+mod parser;
+
+use std::fs::{self, File};
+use std::path::Path;
+use std::{collections::HashMap, path::PathBuf};
+
+use clap::Parser;
+use parser::{Cli, Commands};
+use serde_json::Value;
+use std::io::Write;
+
+fn load_update_file<P: AsRef<Path>>(
+    path: P,
+) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(path)?;
+    let map: HashMap<String, String> = serde_json::from_str(&content)?;
+    Ok(map)
+}
+
+fn load_json<P: AsRef<Path>>(path: P) -> Result<Value, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(path)?;
+    let json: Value = serde_json::from_str(&content)?;
+    Ok(json)
+}
+
+fn list_files_in_dir<P: AsRef<Path>>(dir: P) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    let mut files = Vec::new();
+
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_file() {
+            files.push(path);
+        }
+    }
+
+    Ok(files)
+}
+
+fn insert_under_key(json: &mut Value, path: &[&str], new_key: &str, new_value: &str) {
+    let mut current = json;
+
+    for key in path {
+        current = current
+            .as_object_mut()
+            .and_then(|obj| obj.get_mut(*key))
+            .unwrap_or_else(|| panic!("Path segment '{}' not found", key));
+    }
+
+    // Now we're at the final target object where we want to insert `new_key`
+    if let Some(obj) = current.as_object_mut() {
+        obj.insert(new_key.to_string(), Value::String(new_value.to_string()));
+    } else {
+        panic!("Expected an object at final path to insert into, but found non-object.");
+    }
+}
+
+fn get_file_stem<P: AsRef<Path>>(path_str: P) -> Option<String> {
+    path_str
+        .as_ref()
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .map(|s| s.to_string())
+}
+
+fn split_at_last_dot(s: &str) -> Option<(Vec<&str>, &str)> {
+    match s.rfind('.') {
+        Some(pos) => {
+            let (left, right) = s.split_at(pos);
+            let path_parts: Vec<&str> = left.split('.').collect();
+            Some((path_parts, &right[1..])) // skip the dot
+        }
+        None => None,
+    }
+}
+
+fn save_json_to_file<P: AsRef<Path>>(json: &Value, path: P) -> std::io::Result<()> {
+    let mut file = File::create(path)?;
+    let json_string = serde_json::to_string_pretty(json)?;
+    file.write_all(json_string.as_bytes())?;
+    Ok(())
+}
+
+fn take_value_at_path<'a>(json: &'a mut Value, path: &[&str]) -> Option<Value> {
+    if path.is_empty() {
+        return None;
+    }
+
+    let mut current = json;
+
+    for key in &path[..path.len() - 1] {
+        current = current.get_mut(*key)?;
+    }
+
+    current.as_object_mut()?.remove(path[path.len() - 1])
+}
+
+fn insert_value_at_path(json: &mut Value, path: &[&str], value: Value) {
+    let mut current = json;
+
+    for key in &path[..path.len() - 1] {
+        current = current
+            .as_object_mut()
+            .unwrap()
+            .entry(*key)
+            .or_insert_with(|| Value::Object(Default::default()));
+    }
+
+    if let Some(obj) = current.as_object_mut() {
+        obj.insert(path[path.len() - 1].to_string(), value);
+    }
+}
+
 fn main() {
-    println!("Hello, world!");
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Add { key, from, where_ } => {
+            println!(
+                "Adding from: '{}' to: '{}' under key: {}",
+                from, where_, key
+            );
+            let updates = load_update_file(&from).unwrap();
+            let mut files = list_files_in_dir(where_).unwrap();
+
+            files.iter_mut().for_each(|file| {
+                let mut translations_for_lang = load_json(&file).unwrap();
+                let (path, new_key) = split_at_last_dot(&key).unwrap();
+                let hash_map_key = get_file_stem(&file).unwrap();
+                let value = updates.get(&hash_map_key).unwrap();
+                println!("{path:?} {new_key:?} {value:?}");
+                insert_under_key(&mut translations_for_lang, &path, &new_key, value);
+                let _ = save_json_to_file(&translations_for_lang, file);
+            });
+        }
+        Commands::Remove { key, where_ } => {
+            println!("Removing key '{}' from '{}'", key, where_);
+            let mut files = list_files_in_dir(where_).unwrap();
+
+            files.iter_mut().for_each(|file| {
+                let mut json = load_json(&file).unwrap();
+                if let Some((path, key_to_remove)) = split_at_last_dot(&key) {
+                    let mut current = &mut json;
+                    for segment in &path[..path.len()] {
+                        current = current.get_mut(*segment).unwrap_or_else(|| {
+                            panic!("Path {:?} does not exist in file {:?}", path, file)
+                        });
+                    }
+
+                    if let Some(obj) = current.as_object_mut() {
+                        obj.remove(key_to_remove);
+                    }
+                }
+
+                let _ = save_json_to_file(&json, file);
+            });
+        }
+        Commands::Replace { key, from, where_ } => {
+            println!(
+                "Replacing key '{}' with data from '{}' in '{}'",
+                key, from, where_
+            );
+            let updates = load_update_file(&from).unwrap();
+            let mut files = list_files_in_dir(where_).unwrap();
+
+            files.iter_mut().for_each(|file| {
+                let mut translations = load_json(&file).unwrap();
+                if let Some((path, target_key)) = split_at_last_dot(&key) {
+                    let hash_map_key = get_file_stem(&file).unwrap();
+                    let new_value = updates.get(&hash_map_key).unwrap();
+
+                    let mut current = &mut translations;
+                    for segment in &path[..path.len()] {
+                        current = current.get_mut(*segment).unwrap_or_else(|| {
+                            panic!("Path {:?} does not exist in file {:?}", path, file)
+                        });
+                    }
+
+                    if let Some(obj) = current.as_object_mut() {
+                        obj.insert(target_key.to_string(), Value::String(new_value.to_string()));
+                    }
+                }
+
+                let _ = save_json_to_file(&translations, file);
+            });
+        }
+
+        Commands::Rename { from, to, where_ } => {
+            println!("Renaming '{}' to '{}' in {:?}", from, to, where_);
+
+            let from_path: Vec<&str> = from.split('.').collect();
+            let to_path: Vec<&str> = to.split('.').collect();
+            let mut files = list_files_in_dir(where_).unwrap();
+
+            files.iter_mut().for_each(|file| {
+                let mut json = load_json(&file).unwrap();
+
+                if let Some(value) = take_value_at_path(&mut json, &from_path) {
+                    insert_value_at_path(&mut json, &to_path, value);
+                    let _ = save_json_to_file(&json, file);
+                } else {
+                    println!("Warning: key '{}' not found in {:?}", from, file);
+                }
+            });
+        }
+    }
 }

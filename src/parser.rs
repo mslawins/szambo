@@ -52,4 +52,19 @@ pub enum Commands {
         #[arg(long)]
         where_: String,
     },
+
+    /// Renames a key in every file in directory
+    Rename {
+        /// Key to rename
+        #[arg(long)]
+        from: String,
+
+        /// New key
+        #[arg(long)]
+        to: String,
+
+        /// Target directory (e.g., lang/)
+        #[clap(long)]
+        where_: String,
+    },
 }
