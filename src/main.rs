@@ -84,9 +84,9 @@ fn main() {
                 from, where_, key
             );
             let updates = files::load_json_into_hash_map(&from).unwrap();
-            let mut files = files::list_files_in_dir(where_).unwrap();
+            let files = files::list_files_in_dir(where_).unwrap();
 
-            files.iter_mut().for_each(|file| {
+            files.iter().for_each(|file| {
                 let mut translations_for_lang = files::load_json_into_value(&file).unwrap();
                 let (path, new_key) = split_at_last_dot(&key).unwrap();
                 let hash_map_key = get_file_stem(&file).unwrap();
@@ -98,9 +98,9 @@ fn main() {
         }
         Commands::Remove { key, where_ } => {
             println!("Removing key '{}' from '{}'", key, where_);
-            let mut files = files::list_files_in_dir(where_).unwrap();
+            let files = files::list_files_in_dir(where_).unwrap();
 
-            files.iter_mut().for_each(|file| {
+            files.iter().for_each(|file| {
                 let mut json = files::load_json_into_value(&file).unwrap();
                 if let Some((path, key_to_remove)) = split_at_last_dot(&key) {
                     let mut current = &mut json;
@@ -124,9 +124,9 @@ fn main() {
                 key, from, where_
             );
             let updates = files::load_json_into_hash_map(&from).unwrap();
-            let mut files = files::list_files_in_dir(where_).unwrap();
+            let files = files::list_files_in_dir(where_).unwrap();
 
-            files.iter_mut().for_each(|file| {
+            files.iter().for_each(|file| {
                 let mut translations = files::load_json_into_value(&file).unwrap();
                 if let Some((path, target_key)) = split_at_last_dot(&key) {
                     let hash_map_key = get_file_stem(&file).unwrap();
@@ -153,9 +153,9 @@ fn main() {
 
             let from_path: Vec<&str> = from.split('.').collect();
             let to_path: Vec<&str> = to.split('.').collect();
-            let mut files = files::list_files_in_dir(where_).unwrap();
+            let files = files::list_files_in_dir(where_).unwrap();
 
-            files.iter_mut().for_each(|file| {
+            files.iter().for_each(|file| {
                 let mut json = files::load_json_into_value(&file).unwrap();
 
                 if let Some(value) = take_value_at_path(&mut json, &from_path) {
