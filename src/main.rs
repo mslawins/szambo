@@ -1,4 +1,5 @@
 mod files;
+mod json;
 mod parser;
 
 use std::path::Path;
@@ -6,24 +7,6 @@ use std::path::Path;
 use clap::Parser;
 use parser::{Cli, Commands};
 use serde_json::Value;
-
-fn insert_under_key(json: &mut Value, path: &[&str], new_key: &str, new_value: &str) {
-    let mut current = json;
-
-    for key in path {
-        current = current
-            .as_object_mut()
-            .and_then(|obj| obj.get_mut(*key))
-            .unwrap_or_else(|| panic!("Path segment '{}' not found", key));
-    }
-
-    // Now we're at the final target object where we want to insert `new_key`
-    if let Some(obj) = current.as_object_mut() {
-        obj.insert(new_key.to_string(), Value::String(new_value.to_string()));
-    } else {
-        panic!("Expected an object at final path to insert into, but found non-object.");
-    }
-}
 
 fn get_file_stem<P: AsRef<Path>>(path_str: P) -> Option<String> {
     path_str
@@ -92,7 +75,9 @@ fn main() {
                 let hash_map_key = get_file_stem(&file).unwrap();
                 let value = updates.get(&hash_map_key).unwrap();
                 println!("{path:?} {new_key:?} {value:?}");
-                insert_under_key(&mut translations_for_lang, &path, &new_key, value);
+                let result =
+                    json::insert_under_key(&mut translations_for_lang, &path, &new_key, value)
+                        .unwrap();
                 let _ = files::save_value_to_json_file(&translations_for_lang, file);
             });
         }
