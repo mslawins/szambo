@@ -1,6 +1,5 @@
 use serde_json::Value;
 
-// TODO: Test Err paths
 pub fn insert_under_key(
     json: &mut Value,
     path: &[&str],
@@ -9,39 +8,38 @@ pub fn insert_under_key(
 ) -> Result<(), String> {
     let mut current = json;
 
-    for key in path {
-        if !current.is_object() {
+    for (i, key) in path.iter().enumerate() {
+        let obj = current.as_object_mut().ok_or_else(|| {
+            format!(
+                "Expected object at path segment '{}', but found something else!",
+                key
+            )
+        })?;
+
+        current = obj.entry(*key).or_insert(Value::Object(Default::default()));
+
+        if !current.is_object() && i != path.len() - 1 {
             return Err(format!(
-                "Expected object at path segment '{}', found something else",
+                "Expected object at path segment '{}', but found something else!",
                 key
             ));
         }
-
-        if current.get(*key).is_none() {
-            current
-                .as_object_mut()
-                .ok_or("Expected object while traversing path".to_string())?
-                .insert((*key).to_string(), Value::Object(Default::default()));
-        }
-
-        current = current
-            .as_object_mut()
-            .and_then(|obj| obj.get_mut(*key))
-            .ok_or_else(|| format!("Path segment '{}' not found", key))?;
     }
 
-    if let Some(obj) = current.as_object_mut() {
-        if obj.contains_key(new_key) {
-            return Err(format!(
-                "Key '{}' already exists at the target path! Use REPLACE command instead.",
-                new_key
-            ));
+    match current {
+        Value::Object(obj) => {
+            if obj.contains_key(new_key) {
+                return Err(format!(
+                    "Key '{}' already exists at the target path! Use REPLACE command instead.",
+                    new_key
+                ));
+            }
+            obj.insert(new_key.to_string(), Value::String(new_value.to_string()));
+            Ok(())
         }
-
-        obj.insert(new_key.to_string(), Value::String(new_value.to_string()));
-        Ok(())
-    } else {
-        Err("Expected an object at final path to insert into, but found non-object.".to_string())
+        _ => Err(
+            "Expected an object at final path to insert into, but found non-object.".to_string(),
+        ),
     }
 }
 
@@ -178,6 +176,40 @@ mod insert_under_key {
         assert_eq!(
             result.unwrap_err(),
             "Key 'new' already exists at the target path! Use REPLACE command instead.",
+        );
+    }
+
+    #[test]
+    fn should_return_error_if_found_string_instead_of_object_during_path_traversal() {
+        let mut data = json!({
+            "foo": "foo_value"
+        });
+        let expected = json!({
+            "foo": "foo_value"
+        });
+
+        let result = insert_under_key(&mut data, &["foo", "bar"], "new", "value");
+
+        assert_eq!(data, expected);
+        assert_eq!(
+            result.unwrap_err(),
+            "Expected object at path segment 'foo', but found something else!"
+        );
+    }
+
+    #[test]
+    fn should_return_error_if_value_under_final_path_is_string_and_not_object() {
+        let mut data = json!({
+            "foo": {
+                "bar": "bar_value"
+            }
+        });
+
+        let result = insert_under_key(&mut data, &["foo", "bar"], "new", "value");
+
+        assert_eq!(
+            result.unwrap_err(),
+            "Expected an object at final path to insert into, but found non-object."
         );
     }
 }
