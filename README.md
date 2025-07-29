@@ -1,3 +1,10 @@
+# Instruction for dummies
+
+1. Install Rust on your machine
+2. Clone this repo
+3. Build with: `cargo build --release`
+4. On Mac/Linus move compiled program to directory included in $PATH
+
 # Usage
 
 * szambo add --from=input.json --key="foo.bar.baz" --where=lang/ 
