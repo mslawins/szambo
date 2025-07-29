@@ -8,6 +8,8 @@ use clap::Parser;
 use parser::{Cli, Commands};
 use serde_json::Value;
 
+use crate::json::{insert::insert_under_key, remove::remove_key_at_path};
+
 fn get_file_stem<P: AsRef<Path>>(path_str: P) -> Option<String> {
     path_str
         .as_ref()
@@ -74,10 +76,8 @@ fn main() {
                 let (path, new_key) = split_at_last_dot(&key).unwrap();
                 let hash_map_key = get_file_stem(&file).unwrap();
                 let value = updates.get(&hash_map_key).unwrap();
-                println!("{path:?} {new_key:?} {value:?}");
-                let result =
-                    json::insert_under_key(&mut translations_for_lang, &path, &new_key, value)
-                        .unwrap();
+                let _ =
+                    insert_under_key(&mut translations_for_lang, &path, &new_key, value).unwrap();
                 let _ = files::save_value_to_json_file(&translations_for_lang, file);
             });
         }
@@ -87,22 +87,17 @@ fn main() {
 
             files.iter().for_each(|file| {
                 let mut json = files::load_json_into_value(&file).unwrap();
-                if let Some((path, key_to_remove)) = split_at_last_dot(&key) {
-                    let mut current = &mut json;
-                    for segment in &path[..path.len()] {
-                        current = current.get_mut(*segment).unwrap_or_else(|| {
-                            panic!("Path {:?} does not exist in file {:?}", path, file)
-                        });
-                    }
 
-                    if let Some(obj) = current.as_object_mut() {
-                        obj.remove(key_to_remove);
+                if let Some((path, key_to_remove)) = split_at_last_dot(&key) {
+                    if let Err(err) = remove_key_at_path(&mut json, &path, key_to_remove) {
+                        eprintln!("Error removing key: {}", err);
                     }
                 }
 
                 let _ = files::save_value_to_json_file(&json, file);
             });
         }
+
         Commands::Replace { key, from, where_ } => {
             println!(
                 "Replacing key '{}' with data from '{}' in '{}'",
