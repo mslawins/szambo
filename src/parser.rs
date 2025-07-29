@@ -67,4 +67,11 @@ pub enum Commands {
         #[clap(long)]
         where_: String,
     },
+
+    /// Sort directory of JSON files alphabetically
+    Sort {
+        /// Target directory (e.g., lang/)
+        #[clap(long)]
+        where_: String,
+    },
 }

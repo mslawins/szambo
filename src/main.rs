@@ -146,5 +146,13 @@ fn main() {
                 }
             });
         }
+        Commands::Sort { where_ } => {
+            let files = files::list_files_in_dir(where_).unwrap();
+
+            files.iter().for_each(|file| {
+                let json = files::load_json_into_value(&file).unwrap();
+                let _ = files::save_value_to_json_file(&json, file).unwrap();
+            });
+        }
     }
 }
