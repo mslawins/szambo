@@ -70,31 +70,26 @@ fn main() {
             );
             let updates = files::load_json_into_hash_map(&from).unwrap();
             let files = files::list_files_in_dir(where_).unwrap();
-
-            files.iter().for_each(|file| {
-                let mut translations_for_lang = files::load_json_into_value(&file).unwrap();
-                let (path, new_key) = split_at_last_dot(&key).unwrap();
-                let hash_map_key = get_file_stem(&file).unwrap();
-                let value = updates.get(&hash_map_key).unwrap();
-                let _ =
-                    insert_under_key(&mut translations_for_lang, &path, &new_key, value).unwrap();
-                let _ = files::save_value_to_json_file(&translations_for_lang, file);
-            });
-        }
-        Commands::Remove { key, where_ } => {
-            println!("Removing key '{}' from '{}'", key, where_);
-            let files = files::list_files_in_dir(where_).unwrap();
+            let (path, new_key) = split_at_last_dot(&key).unwrap();
 
             files.iter().for_each(|file| {
                 let mut json = files::load_json_into_value(&file).unwrap();
+                let hash_map_key = get_file_stem(&file).unwrap();
+                let value = updates.get(&hash_map_key).unwrap();
+                insert_under_key(&mut json, &path, &new_key, value).unwrap();
+                files::save_value_to_json_file(&json, file).unwrap();
+            });
+        }
 
-                if let Some((path, key_to_remove)) = split_at_last_dot(&key) {
-                    if let Err(err) = remove_key_at_path(&mut json, &path, key_to_remove) {
-                        eprintln!("Error removing key: {}", err);
-                    }
-                }
+        Commands::Remove { key, where_ } => {
+            println!("Removing key '{}' from '{}'", key, where_);
+            let files = files::list_files_in_dir(where_).unwrap();
+            let (path, key_to_remove) = split_at_last_dot(&key).unwrap();
 
-                let _ = files::save_value_to_json_file(&json, file);
+            files.iter().for_each(|file| {
+                let mut json = files::load_json_into_value(&file).unwrap();
+                remove_key_at_path(&mut json, &path, key_to_remove).unwrap();
+                files::save_value_to_json_file(&json, file).unwrap();
             });
         }
 
@@ -146,7 +141,9 @@ fn main() {
                 }
             });
         }
+
         Commands::Sort { where_ } => {
+            println!("Sorting files in {:?}", where_);
             let files = files::list_files_in_dir(where_).unwrap();
 
             files.iter().for_each(|file| {
