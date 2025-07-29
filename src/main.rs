@@ -21,14 +21,14 @@ fn get_file_stem<P: AsRef<Path>>(path_str: P) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-fn split_at_last_dot(s: &str) -> Result<(Vec<&str>, &str), String> {
+fn get_path_and_key(s: &str) -> Result<(Vec<&str>, &str), String> {
     match s.rfind('.') {
         Some(pos) => {
             let (left, right) = s.split_at(pos);
             let path_parts: Vec<&str> = left.split('.').collect();
             Ok((path_parts, &right[1..]))
         }
-        None => Err(format!("Not found")),
+        None => Ok((vec![], s)),
     }
 }
 
@@ -43,7 +43,7 @@ fn main() {
             );
             let updates = files::load_json_into_hash_map(&from).unwrap();
             let files = files::list_files_in_dir(where_).unwrap();
-            let (path, new_key) = split_at_last_dot(&key).unwrap();
+            let (path, new_key) = get_path_and_key(&key).unwrap();
 
             files.iter().for_each(|file| {
                 let mut json = files::load_json_into_value(&file).unwrap();
@@ -57,7 +57,7 @@ fn main() {
         Commands::Remove { key, where_ } => {
             println!("Removing key '{}' from '{}'", key, where_);
             let files = files::list_files_in_dir(where_).unwrap();
-            let (path, key_to_remove) = split_at_last_dot(&key).unwrap();
+            let (path, key_to_remove) = get_path_and_key(&key).unwrap();
 
             files.iter().for_each(|file| {
                 let mut json = files::load_json_into_value(&file).unwrap();
@@ -73,7 +73,7 @@ fn main() {
             );
             let updates = files::load_json_into_hash_map(&from).unwrap();
             let files = files::list_files_in_dir(where_).unwrap();
-            let (path, key_to_replace) = split_at_last_dot(&key).unwrap();
+            let (path, key_to_replace) = get_path_and_key(&key).unwrap();
 
             files.iter().for_each(|file| {
                 let hash_map_key = get_file_stem(&file).unwrap();
