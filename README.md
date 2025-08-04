@@ -1,9 +1,13 @@
-# Instruction for dummies
+# Installation instruction
 
 1. Install Rust on your machine
 2. Clone this repo
 3. Build with: `cargo build --release`
 4. On Mac/Linus move compiled program to directory included in $PATH
+
+#  Installation using just (steps 3. and 4.)
+
+1. just release
 
 # Usage
 
