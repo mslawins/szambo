@@ -10,7 +10,7 @@ pub fn rename_key_at_path(
         Ok(())
     } else {
         Err(format!(
-            "Key '{}' not found during rename.",
+            "Key '{}' not found during rename!",
             from_path.join(".")
         ))
     }
@@ -43,5 +43,142 @@ fn insert_value_at_path(json: &mut Value, path: &[&str], value: Value) {
 
     if let Some(obj) = current.as_object_mut() {
         obj.insert(path[path.len() - 1].to_string(), value);
+    }
+}
+
+#[cfg(test)]
+mod rename_key_at_path {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn should_rename_key_at_path() {
+        let mut data = json!({
+            "key": "value"
+        });
+        let expected = json!({
+            "new_key": "value"
+        });
+
+        let result = rename_key_at_path(&mut data, &["key"], &["new_key"]);
+
+        assert_eq!(data, expected);
+        assert_eq!(result.unwrap(), ());
+    }
+
+    #[test]
+    fn should_rename_nested_key_at_path() {
+        let mut data = json!({
+            "foo": {
+                "key": "value"
+            }
+        });
+        let expected = json!({
+            "foo": {
+                "new_key": "value"
+            }
+        });
+
+        let result = rename_key_at_path(&mut data, &["foo", "key"], &["foo", "new_key"]);
+
+        assert_eq!(data, expected);
+        assert_eq!(result.unwrap(), ());
+    }
+
+    #[test]
+    fn should_rename_deeply_nested_key_at_path() {
+        let mut data = json!({
+            "foo": {
+                "bar": {
+                    "key": "value"
+                }
+            }
+        });
+        let expected = json!({
+            "foo": {
+                "bar": {
+                    "new_key": "value"
+                }
+            }
+        });
+
+        let result = rename_key_at_path(
+            &mut data,
+            &["foo", "bar", "key"],
+            &["foo", "bar", "new_key"],
+        );
+
+        assert_eq!(data, expected);
+        assert_eq!(result.unwrap(), ());
+    }
+
+    #[test]
+    fn should_move_existing_key_to_parent_key() {
+        let mut data = json!({
+            "foo": {
+                "bar": {
+                    "key": "value",
+                    "other_key": "value"
+                }
+            }
+        });
+        let expected = json!({
+            "foo": {
+                "bar": "value"
+            }
+        });
+
+        let result = rename_key_at_path(&mut data, &["foo", "bar", "key"], &["foo", "bar"]);
+
+        assert_eq!(data, expected);
+        assert_eq!(result.unwrap(), ());
+    }
+
+    #[test]
+    fn should_move_existing_key_as_parent_sibling() {
+        let mut data = json!({
+            "foo": {
+                "bar": {
+                    "key": "value"
+                }
+            }
+        });
+        let expected = json!({
+            "foo": {
+                "bar": {},
+                "baz": "value"
+            }
+        });
+
+        let result = rename_key_at_path(&mut data, &["foo", "bar", "key"], &["foo", "baz"]);
+
+        assert_eq!(data, expected);
+        assert_eq!(result.unwrap(), ());
+    }
+
+    #[test]
+    fn should_return_err_if_from_path_does_not_exist_in_file() {
+        let mut data = json!({
+            "foo": {
+                "bar": {
+                    "key": "value"
+                }
+            }
+        });
+        let expected = json!({
+            "foo": {
+                "bar": {
+                    "key": "value"
+                }
+            }
+        });
+
+        let result = rename_key_at_path(&mut data, &["foo", "bar", "other_key"], &["foo", "baz"]);
+
+        assert_eq!(data, expected);
+        assert_eq!(
+            result.unwrap_err(),
+            "Key 'foo.bar.other_key' not found during rename!"
+        );
     }
 }
