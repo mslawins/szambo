@@ -60,6 +60,17 @@ pub fn get_file_stem<P: AsRef<Path>>(path_str: P) -> Result<String, String> {
         .ok_or_else(|| "Can't get file stem!".to_string())
 }
 
+pub fn get_path_and_key(s: &str) -> Result<(Vec<&str>, &str), String> {
+    match s.rfind('.') {
+        Some(pos) => {
+            let (left, right) = s.split_at(pos);
+            let path_parts: Vec<&str> = left.split('.').collect();
+            Ok((path_parts, &right[1..]))
+        }
+        None => Ok((vec![], s)),
+    }
+}
+
 #[cfg(test)]
 mod validate_paths_and_updates_file_keys_match {
     use super::*;
