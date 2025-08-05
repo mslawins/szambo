@@ -1,15 +1,19 @@
-# Installation instruction
+# szambo
+
+Szambo is CLI tool created to simplify management of JSON translations files.
+
+## Installation instruction
 
 1. Install Rust on your machine
 2. Clone this repo
 3. Build with: `cargo build --release`
 4. On Mac/Linus move compiled program to directory included in $PATH
 
-#  Installation using just (steps 3. and 4.)
+##  Installation using just (steps 3. and 4.)
 
 1. just release
 
-# Usage
+## Usage
 
 * szambo add --from=input.json --key="foo.bar.baz" --where=lang/ 
 * szambo remove --key="foo.bar.baz" --where=lang/
@@ -18,6 +22,31 @@
 * szambo sort  --where=lang/
 * szambo compare --reference=en.json --target=sv.json
 
-# Caveats
+## Update file format
+
+Szambo assumes that update file will match files in lang/ directory. Example:
+
+```
+// input.json
+{
+    "en": "Hi",
+    "pl": "Czesc",
+    "es": "Ola"
+}
+```
+
+where:
+ 
+```
+// lang/
+├── en.json
+├── pl.json
+└── es.json
+
+```
+
+
+
+## Caveats
 
 * on save all files are being sorted in alphabetical order (by key)
