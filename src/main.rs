@@ -7,8 +7,8 @@ use clap::Parser;
 use parser::{Cli, Commands};
 
 use crate::json::{
-    insert::insert_under_key, remove::remove_key_at_path, rename::rename_key_at_path,
-    replace::replace_value_at_key,
+    compare::get_missing_paths, insert::insert_under_key, remove::remove_key_at_path,
+    rename::rename_key_at_path, replace::replace_value_at_key,
 };
 
 fn main() {
@@ -88,6 +88,16 @@ fn main() {
                 let json = files::load_json_into_value(&file).unwrap();
                 files::save_value_to_json_file(&json, file).unwrap();
             });
+        }
+        Commands::Compare { reference, target } => {
+            println!(
+                "Comparing target file: {} to reference file: {}",
+                target, reference
+            );
+            let reference = files::load_json_into_value(reference).unwrap();
+            let target = files::load_json_into_value(target).unwrap();
+            let result = get_missing_paths(&reference, &target);
+            println!("{}", result);
         }
     }
 }

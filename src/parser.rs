@@ -68,10 +68,21 @@ pub enum Commands {
         where_: String,
     },
 
-    /// Sort directory of JSON files alphabetically
+    /// Sorts every JSON file in directory alphabetically (using keys)
     Sort {
         /// Target directory (e.g., lang/)
         #[clap(long)]
         where_: String,
+    },
+
+    /// Compares content of target file to reference file to list missing keys/paths
+    Compare {
+        /// File, for which missing keys/paths will be listed comparing to reference file
+        #[clap(long)]
+        target: String,
+
+        /// File, based on which missing keys/paths will be listed
+        #[clap(long)]
+        reference: String,
     },
 }
