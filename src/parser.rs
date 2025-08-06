@@ -25,6 +25,10 @@ pub enum Commands {
         /// Target directory (e.g., lang/)
         #[arg(long)]
         where_: String,
+
+        /// List of files, which should be updated (partial update)
+        #[arg(long)]
+        files: Option<String>,
     },
 
     /// Remove entry by key from a directory
@@ -51,6 +55,10 @@ pub enum Commands {
         /// Target directory (e.g., lang/)
         #[arg(long)]
         where_: String,
+
+        /// List of files, which should be updated (partial update)
+        #[arg(long)]
+        files: Option<String>,
     },
 
     /// Renames a key in every file in directory

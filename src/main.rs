@@ -15,23 +15,54 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Add { key, from, where_ } => {
-            println!(
-                "Adding from: '{}' to: '{}' under key: {}",
-                from, where_, key
-            );
-            let updates = files::load_json_into_hash_map(&from).unwrap();
-            let files = files::list_files_in_dir(where_).unwrap();
-            utils::validate_paths_and_updates_file_keys_match(&updates, &files).unwrap();
-            let (path, new_key) = utils::get_path_and_key(&key).unwrap();
+        Commands::Add {
+            key,
+            from,
+            where_,
+            files,
+        } => {
+            if let Some(required_keys) = files {
+                let required_keys = utils::parse_limit(&required_keys).unwrap();
+                println!(
+                    "Adding from: '{}' to directory: '{}' under key: {} only for {:?}",
+                    from, where_, key, required_keys
+                );
+                let updates = files::load_json_into_hash_map(&from).unwrap();
+                let files = files::list_files_in_dir(where_).unwrap();
+                utils::validate_required_keys_exist(&updates, &files, &required_keys).unwrap();
+                let (path, new_key) = utils::get_path_and_key(&key).unwrap();
 
-            files.iter().for_each(|file| {
-                let mut json = files::load_json_into_value(&file).unwrap();
-                let hash_map_key = utils::get_file_stem(&file).unwrap();
-                let value = updates.get(&hash_map_key).unwrap();
-                insert_under_key(&mut json, &path, &new_key, value).unwrap();
-                files::save_value_to_json_file(&json, file).unwrap();
-            });
+                files
+                    .iter()
+                    .filter(|file| {
+                        let stem = utils::get_file_stem(&file).unwrap();
+                        required_keys.contains(&stem)
+                    })
+                    .for_each(|file| {
+                        let mut json = files::load_json_into_value(&file).unwrap();
+                        let hash_map_key = utils::get_file_stem(&file).unwrap();
+                        let value = updates.get(&hash_map_key).unwrap();
+                        insert_under_key(&mut json, &path, &new_key, value).unwrap();
+                        files::save_value_to_json_file(&json, file).unwrap();
+                    });
+            } else {
+                println!(
+                    "Adding from: '{}' to: '{}' under key: {}",
+                    from, where_, key
+                );
+                let updates = files::load_json_into_hash_map(&from).unwrap();
+                let files = files::list_files_in_dir(where_).unwrap();
+                utils::validate_paths_and_updates_file_keys_match(&updates, &files).unwrap();
+                let (path, new_key) = utils::get_path_and_key(&key).unwrap();
+
+                files.iter().for_each(|file| {
+                    let mut json = files::load_json_into_value(&file).unwrap();
+                    let hash_map_key = utils::get_file_stem(&file).unwrap();
+                    let value = updates.get(&hash_map_key).unwrap();
+                    insert_under_key(&mut json, &path, &new_key, value).unwrap();
+                    files::save_value_to_json_file(&json, file).unwrap();
+                });
+            }
         }
 
         Commands::Remove { key, where_ } => {
@@ -46,24 +77,56 @@ fn main() {
             });
         }
 
-        Commands::Replace { key, from, where_ } => {
-            println!(
-                "Replacing key '{}' with data from '{}' in '{}'",
-                key, from, where_
-            );
-            let updates = files::load_json_into_hash_map(&from).unwrap();
-            let files = files::list_files_in_dir(where_).unwrap();
-            utils::validate_paths_and_updates_file_keys_match(&updates, &files).unwrap();
-            let (path, key_to_replace) = utils::get_path_and_key(&key).unwrap();
+        Commands::Replace {
+            key,
+            from,
+            where_,
+            files,
+        } => {
+            if let Some(required_keys) = files {
+                let required_keys = utils::parse_limit(&required_keys).unwrap();
+                println!(
+                    "Replacing key '{}' with data from '{}' in '{} only for {:?}'",
+                    key, from, where_, required_keys
+                );
+                let updates = files::load_json_into_hash_map(&from).unwrap();
+                let files = files::list_files_in_dir(where_).unwrap();
+                utils::validate_required_keys_exist(&updates, &files, &required_keys).unwrap();
+                let (path, key_to_replace) = utils::get_path_and_key(&key).unwrap();
 
-            files.iter().for_each(|file| {
-                let hash_map_key = utils::get_file_stem(&file).unwrap();
-                let new_value = updates.get(&hash_map_key).unwrap();
+                files
+                    .iter()
+                    .filter(|file| {
+                        let stem = utils::get_file_stem(&file).unwrap();
+                        required_keys.contains(&stem)
+                    })
+                    .for_each(|file| {
+                        let hash_map_key = utils::get_file_stem(&file).unwrap();
+                        let new_value = updates.get(&hash_map_key).unwrap();
 
-                let mut json = files::load_json_into_value(&file).unwrap();
-                replace_value_at_key(&mut json, &path, key_to_replace, new_value).unwrap();
-                files::save_value_to_json_file(&json, file).unwrap();
-            });
+                        let mut json = files::load_json_into_value(&file).unwrap();
+                        replace_value_at_key(&mut json, &path, key_to_replace, new_value).unwrap();
+                        files::save_value_to_json_file(&json, file).unwrap();
+                    });
+            } else {
+                println!(
+                    "Replacing key '{}' with data from '{}' in '{}'",
+                    key, from, where_
+                );
+                let updates = files::load_json_into_hash_map(&from).unwrap();
+                let files = files::list_files_in_dir(where_).unwrap();
+                utils::validate_paths_and_updates_file_keys_match(&updates, &files).unwrap();
+                let (path, key_to_replace) = utils::get_path_and_key(&key).unwrap();
+
+                files.iter().for_each(|file| {
+                    let hash_map_key = utils::get_file_stem(&file).unwrap();
+                    let new_value = updates.get(&hash_map_key).unwrap();
+
+                    let mut json = files::load_json_into_value(&file).unwrap();
+                    replace_value_at_key(&mut json, &path, key_to_replace, new_value).unwrap();
+                    files::save_value_to_json_file(&json, file).unwrap();
+                });
+            }
         }
 
         Commands::Rename { from, to, where_ } => {

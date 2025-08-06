@@ -1,6 +1,54 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+pub fn parse_limit(input: &str) -> Result<Vec<String>, String> {
+    input
+        .split(',')
+        .map(|part| get_file_stem(part.trim()))
+        .collect()
+}
+
+pub fn validate_required_keys_exist(
+    updates: &HashMap<String, String>,
+    paths: &[PathBuf],
+    required_keys: &[String],
+) -> Result<(), String> {
+    let mut path_keys = std::collections::HashSet::new();
+
+    for path in paths {
+        if let Some(file_str) = path.to_str() {
+            let stem = get_file_stem(file_str)?;
+            path_keys.insert(stem);
+        }
+    }
+
+    let missing_required: Vec<&String> = required_keys
+        .iter()
+        .filter(|k| !updates.contains_key(*k) || !path_keys.contains(*k))
+        .collect();
+
+    if !missing_required.is_empty() {
+        if missing_required.len() == 1 {
+            return Err(format!(
+                "Required key '{}' is missing from updates or paths!",
+                missing_required[0]
+            ));
+        } else {
+            let keys = missing_required
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join("', '");
+            return Err(format!(
+                "Required keys '{}' are missing from updates or paths!",
+                keys
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 pub fn validate_paths_and_updates_file_keys_match(
     updates: &HashMap<String, String>,
     paths: &[PathBuf],
