@@ -72,7 +72,10 @@ fn main() {
 
             files.iter().for_each(|file| {
                 let mut json = files::load_json_into_value(&file).unwrap();
-                remove_key_at_path(&mut json, &path, key_to_remove).unwrap();
+                let result = remove_key_at_path(&mut json, &path, key_to_remove);
+                if let Err(message) = result {
+                    println!("{} for file: {:?}", message, file);
+                }
                 files::save_value_to_json_file(&json, file).unwrap();
             });
         }
