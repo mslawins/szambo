@@ -15,7 +15,7 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Add {
+        Commands::AddToMany {
             key,
             from,
             where_,
@@ -63,6 +63,18 @@ fn main() {
                     files::save_value_to_json_file(&json, file).unwrap();
                 });
             }
+        }
+
+        Commands::AddToSingle { from, where_ } => {
+            println!("Adding from {} into {}", from, where_);
+            let updates = files::load_json_into_hash_map(&from).unwrap();
+            let mut json = files::load_json_into_value(&where_).unwrap();
+
+            updates.iter().for_each(|(full_path, value)| {
+                let (path, new_key) = utils::get_path_and_key(&full_path).unwrap();
+                insert_under_key(&mut json, &path, &new_key, value).unwrap();
+            });
+            files::save_value_to_json_file(&json, &where_).unwrap();
         }
 
         Commands::Remove { key, where_ } => {
@@ -155,6 +167,7 @@ fn main() {
                 files::save_value_to_json_file(&json, file).unwrap();
             });
         }
+
         Commands::Compare { reference, target } => {
             println!(
                 "Comparing target file: {} to reference file: {}",
@@ -164,6 +177,37 @@ fn main() {
             let target = files::load_json_into_value(target).unwrap();
             let result = get_missing_paths(&reference, &target);
             println!("{}", result);
+        }
+
+        Commands::CompareAll { where_ } => {
+            println!("Comparing all files in directory: {}", where_);
+            let files = files::list_files_in_dir(&where_).unwrap();
+
+            if files.len() < 2 {
+                println!(
+                    "Not enough files to compare in directory: {}. Directory contains {} files",
+                    where_,
+                    files.len()
+                );
+            }
+
+            let reference = files.get(0).unwrap();
+            let reference = files::load_json_into_value(reference).unwrap();
+
+            let mut failed = false;
+            files.iter().skip(1).for_each(|file| {
+                let target = files::load_json_into_value(file).unwrap();
+                let result = get_missing_paths(&reference, &target);
+                println!("{}", result);
+
+                if result.is_there_any_difference() {
+                    failed = true;
+                }
+            });
+
+            if failed == true {
+                std::process::exit(1);
+            }
         }
     }
 }

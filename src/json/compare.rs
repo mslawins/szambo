@@ -8,6 +8,12 @@ pub struct JsonDiff {
     pub missing_in_reference: Vec<String>,
 }
 
+impl JsonDiff {
+    pub fn is_there_any_difference(&self) -> bool {
+        self.missing_in_target.len() > 0 || self.missing_in_reference.len() > 0
+    }
+}
+
 impl fmt::Display for JsonDiff {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "\nMissing in target:\n")?;

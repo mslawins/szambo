@@ -15,12 +15,14 @@ Szambo is CLI tool created to simplify management of JSON translations files.
 
 ## Usage
 
-* szambo add --from=input.json --key="foo.bar.baz" --where=lang/ 
+* szambo add-to-many --from=input.json --key="foo.bar.baz" --where=lang/ 
+* szambo add-to-single --from=input.json --where=lang/
 * szambo remove --key="foo.bar.baz" --where=lang/
 * szambo replace --key="foo.bar.baz" --from=input.json --where=lang/
 * szambo rename --from="foo.bar.baz" --to="aaa.bbb.ccc" --where=lang/
 * szambo sort  --where=lang/
 * szambo compare --reference=en.json --target=sv.json
+* szambo compare-all --where=lang/
 
 ## Update file format
 
