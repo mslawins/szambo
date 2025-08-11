@@ -173,9 +173,9 @@ fn main() {
                 "Comparing target file: {} to reference file: {}",
                 target, reference
             );
-            let reference = files::load_json_into_value(reference).unwrap();
-            let target = files::load_json_into_value(target).unwrap();
-            let result = get_missing_paths(&reference, &target);
+            let reference_json = files::load_json_into_value(reference.clone()).unwrap();
+            let target_json = files::load_json_into_value(target.clone()).unwrap();
+            let result = get_missing_paths(&reference_json, &target_json, &reference, &target);
             println!("{}", result);
         }
 
@@ -192,12 +192,15 @@ fn main() {
             }
 
             let reference = files.get(0).unwrap();
-            let reference = files::load_json_into_value(reference).unwrap();
+            let reference_json = files::load_json_into_value(reference).unwrap();
 
             let mut failed = false;
             files.iter().skip(1).for_each(|file| {
-                let target = files::load_json_into_value(file).unwrap();
-                let result = get_missing_paths(&reference, &target);
+                let target_json = files::load_json_into_value(file).unwrap();
+                let reference_str = reference.to_str().unwrap();
+                let target_str = file.to_str().unwrap();
+                let result =
+                    get_missing_paths(&reference_json, &target_json, &reference_str, &target_str);
                 println!("{}", result);
 
                 if result.is_there_any_difference() {

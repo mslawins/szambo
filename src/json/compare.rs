@@ -4,6 +4,8 @@ use std::fmt;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct JsonDiff {
+    pub target_file: String,
+    pub reference_file: String,
     pub missing_in_target: Vec<String>,
     pub missing_in_reference: Vec<String>,
 }
@@ -16,7 +18,7 @@ impl JsonDiff {
 
 impl fmt::Display for JsonDiff {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "\nMissing in target:\n")?;
+        writeln!(f, "\nMissing in target ({}):\n", self.target_file)?;
         if self.missing_in_target.is_empty() {
             writeln!(f, "-")?;
         } else {
@@ -25,7 +27,7 @@ impl fmt::Display for JsonDiff {
             }
         }
 
-        writeln!(f, "\nMissing in reference:\n")?;
+        writeln!(f, "\nMissing in reference ({}):\n", self.reference_file)?;
         if self.missing_in_reference.is_empty() {
             writeln!(f, "-")?;
         } else {
@@ -38,7 +40,12 @@ impl fmt::Display for JsonDiff {
     }
 }
 
-pub fn get_missing_paths(reference_json: &Value, target_json: &Value) -> JsonDiff {
+pub fn get_missing_paths(
+    reference_json: &Value,
+    target_json: &Value,
+    reference_path: &str,
+    target_path: &str,
+) -> JsonDiff {
     let mut reference_paths = BTreeSet::new();
     let mut target_paths = BTreeSet::new();
 
@@ -56,6 +63,8 @@ pub fn get_missing_paths(reference_json: &Value, target_json: &Value) -> JsonDif
         .collect::<Vec<_>>();
 
     JsonDiff {
+        target_file: target_path.to_owned(),
+        reference_file: reference_path.to_owned(),
         missing_in_target,
         missing_in_reference,
     }
@@ -91,9 +100,11 @@ mod get_missing_paths {
         let expected = JsonDiff {
             missing_in_reference: vec![],
             missing_in_target: vec![],
+            target_file: "target.json".to_owned(),
+            reference_file: "reference.json".to_owned(),
         };
 
-        let result = get_missing_paths(&reference, &target);
+        let result = get_missing_paths(&reference, &target, "reference.json", "target.json");
 
         assert_eq!(result, expected);
     }
@@ -115,9 +126,11 @@ mod get_missing_paths {
         let expected = JsonDiff {
             missing_in_reference: vec![],
             missing_in_target: vec![],
+            target_file: "target.json".to_owned(),
+            reference_file: "reference.json".to_owned(),
         };
 
-        let result = get_missing_paths(&reference, &target);
+        let result = get_missing_paths(&reference, &target, "reference.json", "target.json");
 
         assert_eq!(result, expected);
     }
@@ -129,9 +142,11 @@ mod get_missing_paths {
         let expected = JsonDiff {
             missing_in_reference: vec![],
             missing_in_target: vec!["key".to_owned()],
+            target_file: "target.json".to_owned(),
+            reference_file: "reference.json".to_owned(),
         };
 
-        let result = get_missing_paths(&reference, &target);
+        let result = get_missing_paths(&reference, &target, "reference.json", "target.json");
 
         assert_eq!(result, expected);
     }
@@ -143,9 +158,11 @@ mod get_missing_paths {
         let expected = JsonDiff {
             missing_in_reference: vec!["key".to_owned()],
             missing_in_target: vec![],
+            target_file: "target.json".to_owned(),
+            reference_file: "reference.json".to_owned(),
         };
 
-        let result = get_missing_paths(&reference, &target);
+        let result = get_missing_paths(&reference, &target, "reference.json", "target.json");
 
         assert_eq!(result, expected);
     }
@@ -166,9 +183,11 @@ mod get_missing_paths {
         let expected = JsonDiff {
             missing_in_reference: vec![],
             missing_in_target: vec!["foo.baz".to_owned()],
+            target_file: "target.json".to_owned(),
+            reference_file: "reference.json".to_owned(),
         };
 
-        let result = get_missing_paths(&reference, &target);
+        let result = get_missing_paths(&reference, &target, "reference.json", "target.json");
 
         assert_eq!(result, expected);
     }
@@ -189,9 +208,11 @@ mod get_missing_paths {
         let expected = JsonDiff {
             missing_in_reference: vec!["foo.baz".to_owned()],
             missing_in_target: vec![],
+            target_file: "target.json".to_owned(),
+            reference_file: "reference.json".to_owned(),
         };
 
-        let result = get_missing_paths(&reference, &target);
+        let result = get_missing_paths(&reference, &target, "reference.json", "target.json");
 
         assert_eq!(result, expected);
     }
@@ -213,9 +234,31 @@ mod get_missing_paths {
         let expected = JsonDiff {
             missing_in_reference: vec!["foo.baz".to_owned()],
             missing_in_target: vec!["key".to_owned()],
+            target_file: "target.json".to_owned(),
+            reference_file: "reference.json".to_owned(),
         };
 
-        let result = get_missing_paths(&reference, &target);
+        let result = get_missing_paths(&reference, &target, "reference.json", "target.json");
+
+        assert_eq!(result, expected);
+    }
+}
+
+#[cfg(test)]
+mod json_diff {
+    use super::*;
+
+    #[test]
+    fn should_print_json_diff_in_human_readable_format() {
+        let json_diff = JsonDiff {
+            missing_in_reference: vec!["foo".to_owned()],
+            missing_in_target: vec!["bar".to_owned()],
+            target_file: "target.json".to_owned(),
+            reference_file: "reference.json".to_owned(),
+        };
+        let expected = "\nMissing in target (target.json):\n\nbar\n\nMissing in reference (reference.json):\n\nfoo\n".to_owned();
+
+        let result = format!("{}", json_diff);
 
         assert_eq!(result, expected);
     }
