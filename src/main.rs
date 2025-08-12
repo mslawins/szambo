@@ -1,14 +1,18 @@
 mod files;
 mod json;
 mod parser;
+mod search;
 mod utils;
 
 use clap::Parser;
 use parser::{Cli, Commands};
 
-use crate::json::{
-    compare::get_missing_paths, insert::insert_under_key, remove::remove_key_at_path,
-    rename::rename_key_at_path, replace::replace_value_at_key,
+use crate::{
+    json::{
+        compare::get_missing_paths, insert::insert_under_key, paths::get_json_paths,
+        remove::remove_key_at_path, rename::rename_key_at_path, replace::replace_value_at_key,
+    },
+    search::find_unused_paths,
 };
 
 fn main() {
@@ -210,6 +214,25 @@ fn main() {
 
             if failed == true {
                 std::process::exit(1);
+            }
+        }
+
+        Commands::UnusedKeys {
+            translations,
+            source,
+        } => {
+            println!(
+                "Searching for unused keys in directory: {} based on translations file: {}",
+                source, translations
+            );
+            let json = files::load_json_into_value(translations).unwrap();
+            let paths = get_json_paths(&json).unwrap();
+            let unused_paths = find_unused_paths(paths, source).unwrap();
+
+            println!("Unused paths (some might be false positives!):\n",);
+
+            for unused_path in &unused_paths {
+                println!("{}", unused_path)
             }
         }
     }

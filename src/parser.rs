@@ -112,4 +112,16 @@ pub enum Commands {
         #[clap(long)]
         where_: String,
     },
+
+    /// Reports which translation keys/paths are not used in source code. This command might
+    /// generate false positives, if keys/paths are not hardcoded in source code.
+    UnusedKeys {
+        /// Translation file, which will be the source of paths (e.g. en.json)
+        #[clap(long)]
+        translations: String,
+
+        /// Directory, which will be scanned for translation usage
+        #[clap(long)]
+        source: String,
+    },
 }

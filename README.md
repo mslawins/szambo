@@ -23,6 +23,7 @@ Szambo is CLI tool created to simplify management of JSON translations files.
 * szambo sort  --where=lang/
 * szambo compare --reference=en.json --target=sv.json
 * szambo compare-all --where=lang/
+* szambo unused-keys --translations="en.json" --source="src/"
 
 ## Update file format
 
