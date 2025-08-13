@@ -217,7 +217,7 @@ fn main() {
             }
         }
 
-        Commands::UnusedKeys {
+        Commands::ListUnusedKeys {
             translations,
             source,
         } => {
@@ -234,6 +234,36 @@ fn main() {
             for unused_path in &unused_paths {
                 println!("{}", unused_path)
             }
+        }
+
+        Commands::RemoveUnusedKeys {
+            translations,
+            source,
+            where_,
+        } => {
+            println!(
+                "Searching for unused keys in directory: {} based on translations file: {}",
+                source, translations
+            );
+            let json = files::load_json_into_value(translations.clone()).unwrap();
+            let paths = get_json_paths(&json).unwrap();
+            let unused_paths = find_unused_paths(paths, source).unwrap();
+            let files = files::list_files_in_dir(where_).unwrap();
+
+            println!("Removing unused paths!");
+
+            files.iter().for_each(|file| {
+                let mut json = files::load_json_into_value(&file).unwrap();
+                for unused_path in &unused_paths {
+                    let (path, key_to_remove) = utils::get_path_and_key(unused_path).unwrap();
+
+                    let result = remove_key_at_path(&mut json, &path, key_to_remove);
+                    if let Err(message) = result {
+                        println!("{} for file: {:?}", message, file);
+                    }
+                }
+                files::save_value_to_json_file(&json, file).unwrap();
+            });
         }
     }
 }
