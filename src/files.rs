@@ -14,14 +14,14 @@ pub fn load_json_into_hash_map<P: AsRef<Path>>(
     Ok(map)
 }
 
-pub fn load_json_into_value<P: AsRef<Path>>(path: P) -> Result<Value, Box<dyn std::error::Error>> {
+pub fn load_json_into_value<P: AsRef<Path>>(path: &P) -> Result<Value, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(path)?;
     let json: Value = serde_json::from_str(&content)?;
     Ok(json)
 }
 
 pub fn list_files_in_dir<P: AsRef<Path>>(
-    path: P,
+    path: &P,
 ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let mut files = Vec::new();
 
@@ -37,7 +37,7 @@ pub fn list_files_in_dir<P: AsRef<Path>>(
     Ok(files)
 }
 
-pub fn save_value_to_json_file<P: AsRef<Path>>(json: &Value, path: P) -> std::io::Result<()> {
+pub fn save_value_to_json_file<P: AsRef<Path>>(json: &Value, path: &P) -> std::io::Result<()> {
     let mut file = File::create(path)?;
     let json_string = serde_json::to_string_pretty(json)?;
     file.write_all(json_string.as_bytes())?;
