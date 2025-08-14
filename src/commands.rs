@@ -9,18 +9,21 @@ use crate::search::find_unused_paths;
 use crate::utils;
 
 pub fn add_to_many_command(key: String, from: String, where_: String, files: Option<String>) {
+    let updates = files::load_json_into_hash_map(&from).unwrap();
+    let files_in_dir = files::list_files_in_dir(&where_).unwrap();
+    let (path, new_key) = utils::get_path_and_key(&key).unwrap();
+
     if let Some(required_keys) = files {
         let required_keys = utils::parse_limit(&required_keys).unwrap();
+
         println!(
             "Adding from: '{}' to directory: '{}' under key: {} only for {:?}",
             from, where_, key, required_keys
         );
-        let updates = files::load_json_into_hash_map(&from).unwrap();
-        let files = files::list_files_in_dir(&where_).unwrap();
-        utils::validate_required_keys_exist(&updates, &files, &required_keys).unwrap();
-        let (path, new_key) = utils::get_path_and_key(&key).unwrap();
 
-        files
+        utils::validate_required_keys_exist(&updates, &files_in_dir, &required_keys).unwrap();
+
+        files_in_dir
             .iter()
             .filter(|file| {
                 let stem = utils::get_file_stem(&file).unwrap();
@@ -38,10 +41,7 @@ pub fn add_to_many_command(key: String, from: String, where_: String, files: Opt
             "Adding from: '{}' to: '{}' under key: {}",
             from, where_, key
         );
-        let updates = files::load_json_into_hash_map(&from).unwrap();
-        let files = files::list_files_in_dir(&where_).unwrap();
-        utils::validate_paths_and_updates_file_keys_match(&updates, &files).unwrap();
-        let (path, new_key) = utils::get_path_and_key(&key).unwrap();
+        utils::validate_paths_and_updates_file_keys_match(&updates, &files_in_dir).unwrap();
 
         files.iter().for_each(|file| {
             let mut json = files::load_json_into_value(&file).unwrap();
@@ -82,18 +82,19 @@ pub fn remove_command(key: String, where_: String) {
 }
 
 pub fn replace_command(key: String, from: String, where_: String, files: Option<String>) {
+    let updates = files::load_json_into_hash_map(&from).unwrap();
+    let files_in_dir = files::list_files_in_dir(&where_).unwrap();
+    let (path, key_to_replace) = utils::get_path_and_key(&key).unwrap();
+
     if let Some(required_keys) = files {
         let required_keys = utils::parse_limit(&required_keys).unwrap();
         println!(
             "Replacing key '{}' with data from '{}' in '{} only for {:?}'",
             key, from, where_, required_keys
         );
-        let updates = files::load_json_into_hash_map(&from).unwrap();
-        let files = files::list_files_in_dir(&where_).unwrap();
-        utils::validate_required_keys_exist(&updates, &files, &required_keys).unwrap();
-        let (path, key_to_replace) = utils::get_path_and_key(&key).unwrap();
+        utils::validate_required_keys_exist(&updates, &files_in_dir, &required_keys).unwrap();
 
-        files
+        files_in_dir
             .iter()
             .filter(|file| {
                 let stem = utils::get_file_stem(&file).unwrap();
@@ -112,12 +113,9 @@ pub fn replace_command(key: String, from: String, where_: String, files: Option<
             "Replacing key '{}' with data from '{}' in '{}'",
             key, from, where_
         );
-        let updates = files::load_json_into_hash_map(&from).unwrap();
-        let files = files::list_files_in_dir(&where_).unwrap();
-        utils::validate_paths_and_updates_file_keys_match(&updates, &files).unwrap();
-        let (path, key_to_replace) = utils::get_path_and_key(&key).unwrap();
+        utils::validate_paths_and_updates_file_keys_match(&updates, &files_in_dir).unwrap();
 
-        files.iter().for_each(|file| {
+        files_in_dir.iter().for_each(|file| {
             let hash_map_key = utils::get_file_stem(&file).unwrap();
             let new_value = updates.get(&hash_map_key).unwrap();
 
